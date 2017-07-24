@@ -14,14 +14,18 @@ else
 	set -- "${CMD_ARRAY[@]}"
 fi
 
+if [[ -n "$ELASTICSEARCH_URL" ]]; then
+  sed -i 's|^\(#\+\)\?elasticsearch\.url:.*$|elasticsearch.url: '"\"$ELASTICSEARCH_URL\""'|' /opt/kibana/config/kibana.yml
+elif [[ -n "$ELASTICSEARCH_SERVICE_NAME" ]]; then
+  SVC_HOST=${ELASTICSEARCH_SERVICE_NAME}_SERVICE_HOST
+  SVC_PORT=${ELASTICSEARCH_SERVICE_NAME}_SERVICE_PORT
+  sed -i 's|^\(#\+\)\?elasticsearch\.url:.*$|elasticsearch.url: '"\"http://${!SVC_HOST}:${!SVC_PORT}\""'|' /opt/kibana/config/kibana.yml
+fi
+
 # Run as user "kibana" if the command is "kibana"
-if [ "$1" = 'kibana' ]; 
-then
-	if [ "$ELASTICSEARCH_URL" ]; then
-		sed -ri "s!^(\#\s*)?(elasticsearch\.url:).*!\2 '$ELASTICSEARCH_URL'!" /opt/kibana/config/kibana.yml
-	fi
+if [ "$1" = 'kibana' ]; then
 	set -- su-exec stakater /sbin/tini -- "$@"
-else 
+else
 	# As argument is not related to kibana,
 	# then assume that user wants to run his own process,
 	# for example a `bash` shell to explore this image
